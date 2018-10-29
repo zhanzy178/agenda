@@ -76,7 +76,6 @@ func initConfig() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-
 		// Search config in home directory with name ".agenda" (without extension).
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".agenda")
