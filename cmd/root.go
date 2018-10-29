@@ -1,4 +1,4 @@
-// Copyright © 2018 Steve Francia <zhanzongyuan@zhanzongyuan.com>
+// Copyright © 2018 Zongyuan Zhan <zhanzy5@mail2.sysu.edu.cn>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
