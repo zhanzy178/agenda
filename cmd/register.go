@@ -21,8 +21,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 )
 
@@ -37,14 +35,15 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("register called")
+		// TODO: Make use of my agenda framework to implement specific function.
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(registerCmd)
-	helpCmd.AddCommand(registerCmd)
+
 	// Here you will define your flags and configuration settings.
+	// TODO: Add Flag here
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
