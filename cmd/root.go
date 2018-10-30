@@ -57,6 +57,9 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
+	// .agenda.yaml file config where putting system data file.
+	// E.g.
+	// data_dir: directory/path/to/your/data/file
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.agenda.yaml)")
 
 	// Cobra also supports local flags, which will only run
