@@ -23,13 +23,17 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var (
+	cfgFile string
+	dataDir string
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -57,9 +61,10 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	// .agenda.yaml file config where putting system data file.
+
+	// .agenda.yaml (define your agenda data dir)
 	// E.g.
-	// data_dir: directory/path/to/your/data/file
+	// agenda_data_dir: directory/path/to/your/data/file
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.agenda.yaml)")
 
 	// Cobra also supports local flags, which will only run
@@ -85,8 +90,27 @@ func initConfig() {
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
+
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
+
+	// Prepare data directory.
+	if dataDir = viper.GetString("agendaDataRoot"); dataDir == "" {
+		// Use default data directory '$HOME/.agenda'
+		home, err := homedir.Dir()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		dataDir = filepath.Join(home, ".agenda")
+	}
+	fi, err := os.Lstat(dataDir)
+	if err != nil || !fi.Mode().IsDir() {
+		// Directory is not exist, mkdir one
+		os.MkdirAll(dataDir, os.ModePerm)
+		fmt.Printf("Create data directory: %s\n", dataDir)
+	}
+	fmt.Printf("Data directory prepared: %s\n", dataDir)
 }
