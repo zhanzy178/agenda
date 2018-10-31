@@ -22,8 +22,11 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/zhanzongyuan/agenda/agenda"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -81,8 +84,8 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			log.Fatal(err)
+			return
 		}
 		// Search config in home directory with name ".agenda" (without extension).
 		viper.AddConfigPath(home)
@@ -101,16 +104,26 @@ func initConfig() {
 		// Use default data directory '$HOME/.agenda'
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			log.Fatal(err)
+			return
 		}
 		dataDir = filepath.Join(home, ".agenda")
 	}
 	fi, err := os.Lstat(dataDir)
 	if err != nil || !fi.Mode().IsDir() {
 		// Directory is not exist, mkdir one
-		os.MkdirAll(dataDir, os.ModePerm)
-		fmt.Printf("Create data directory: %s\n", dataDir)
+		if err := os.MkdirAll(dataDir, os.ModePerm); err != nil {
+			log.Fatal(err)
+			return
+		}
+		log.Printf("Create data directory: %s\n", dataDir)
 	}
-	fmt.Printf("Data directory prepared: %s\n", dataDir)
+	log.Printf("Data directory prepared: %s\n", dataDir)
+
+	// Config data directory for agenda
+	if err := agenda.InitConfig(dataDir); err != nil {
+		log.Fatal(err)
+		return
+	}
+
 }

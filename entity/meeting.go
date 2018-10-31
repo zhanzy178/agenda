@@ -15,12 +15,12 @@ type Meeting struct {
 
 // Add or Remove participator
 func (m *Meeting) Join(u *User) error {
-
+	return nil
 }
 func (m *Meeting) Quit(u *User) error {
-
+	return nil
 }
 
 func (m *Meeting) authorize(ini *User) error {
-
+	return nil
 }
