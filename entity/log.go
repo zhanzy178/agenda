@@ -5,6 +5,6 @@ import "time"
 // Log to record user login information
 type Log struct {
 	UserId      int
-	Pid         int
+	Token       int
 	LastLogDate time.Time
 }

@@ -215,24 +215,32 @@ func (agd *Agenda) Register(name string, password string, email string, number s
 	}
 	return user, nil
 }
+
+func (agd *Agenda) CurrentUser() *entity.User {
+	// Check password and pid
+	curPid := auth.CurrentBashPid()
+
+	// Check current bash state
+	for i := range agd.UserList {
+		user := &agd.UserList[i]
+		if user.IsLogin() && user.CheckToken(curPid) {
+			return user
+		}
+	}
+	return nil
+}
+
 func (agd *Agenda) Login(name string, password string) (*entity.User, error) {
 	// Check password and pid
 	curPid := auth.CurrentBashPid()
 
+	// Login auth check
 	authLogin := false
 	var user *entity.User
 	for i := range agd.UserList {
 		user = &agd.UserList[i]
 		if user.Auth(name, password) {
 			authLogin = true
-			if user.IsLogin() {
-				if user.CheckToken(curPid) {
-					// User has login in some bash
-					log.Printf("User '%s' has logined in current bash.\n", name)
-					break
-				}
-			}
-
 			// Other login this user.
 			// Warning: other bash login this user may lost authorization, remove other Log from list
 			l := 0
@@ -252,7 +260,7 @@ func (agd *Agenda) Login(name string, password string) (*entity.User, error) {
 			// Login and record current bash pid
 			user.Login()
 			user.UpdateToken(curPid)
-			agd.LogList = append(agd.LogList, entity.Log{UserId: user.Id, Pid: curPid, LastLogDate: user.LastLog})
+			agd.LogList = append(agd.LogList, entity.Log{UserId: user.Id, Token: curPid, LastLogDate: user.LastLog})
 			if err := agd.Sync("User"); err != nil {
 				return nil, err
 			}
@@ -290,7 +298,34 @@ func (agd *Agenda) Auth(name string, password string) error {
 		return errors.New("You have not login!")
 	}
 }
-func (agd *Agenda) Logout(name string) error {
+func (agd *Agenda) Logout() error {
+	user := agd.CurrentUser()
+	if user == nil {
+		log.Println("There is not user login in current bash!")
+		return nil
+	}
+	user.Logout()
+	l := 0
+	curPid := auth.CurrentBashPid()
+	for l < len(agd.LogList) {
+		if agd.LogList[l].UserId == user.Id || agd.LogList[l].Token == curPid {
+			if l != len(agd.LogList)-1 {
+				agd.LogList = append(agd.LogList[:l], agd.LogList[l+1:]...)
+			} else {
+				agd.LogList = agd.LogList[:l]
+			}
+		} else {
+			l++
+		}
+	}
+	if err := agd.Sync("User"); err != nil {
+		return err
+	}
+	if err := agd.Sync("Log"); err != nil {
+		return err
+	}
+	log.Printf("Logout user '%s' successfully!\n", user.Name)
+	fmt.Println(user)
 	return nil
 }
 func (agd *Agenda) CheckUsers(name_list []string) {
@@ -317,11 +352,14 @@ func InitConfig(dataDir string) error {
 func Register(name string, password string, email string, number string) (*entity.User, error) {
 	return agenda.Register(name, password, email, number)
 }
+func CurrentUser() *entity.User {
+	return agenda.CurrentUser()
+}
 func Login(name string, password string) (*entity.User, error) {
 	return agenda.Login(name, password)
 }
-func Logout(name string) error {
-	return agenda.Logout(name)
+func Logout() error {
+	return agenda.Logout()
 }
 func CheckUsers(name_list []string) {
 	agenda.CheckUsers(name_list)
