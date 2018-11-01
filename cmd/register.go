@@ -21,11 +21,13 @@
 package cmd
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"log"
 
 	"github.com/spf13/cobra"
 	"github.com/zhanzongyuan/agenda/agenda"
+	"github.com/zhanzongyuan/agenda/validate"
 )
 
 // registerCmd represents the register command
@@ -43,30 +45,57 @@ agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
 	Run: func(cmd *cobra.Command, args []string) {
 		flag := cmd.Flags()
 		// Register User
+
+		// Check username
 		name, err := flag.GetString("username")
 		if err != nil {
 			cmd.Help()
 			log.Fatal(err)
 		}
+		if err := validate.IsNameValid(name); err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+
+		// Check password
 		password, err := flag.GetString("password")
 		if err != nil {
 			cmd.Help()
 			log.Fatal(err)
 		}
+		if err := validate.IsPasswordValid(password); err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+		sha := sha256.New()
+		sha.Write([]byte(password))
+		password = fmt.Sprintf("%x", sha.Sum(nil))
+
+		// Check email
 		email, err := flag.GetString("email")
 		if err != nil {
 			cmd.Help()
 			log.Fatal(err)
 		}
+		if err := validate.IsEmailValid(email); err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+
+		// Check Number
 		number, err := flag.GetString("number")
 		if err != nil {
 			cmd.Help()
 			log.Fatal(err)
 		}
-
+		if err := validate.IsNumberValid(number); len(number) != 0 && err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+		fmt.Println(password)
+		// Register
 		user, err := agenda.Register(name, password, email, number)
 		if err != nil {
-			cmd.Help()
 			log.Fatal(err)
 			return
 		}

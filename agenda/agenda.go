@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/zhanzongyuan/agenda/auth"
 	"github.com/zhanzongyuan/agenda/entity"
 )
 
@@ -112,7 +113,9 @@ func (agd *Agenda) loadList(opt string) error {
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
 			jsonBlob := scanner.Text()
-
+			if len(jsonBlob) == 0 {
+				continue
+			}
 			switch opt {
 			case "User":
 				agd.UserList = append(agd.UserList, entity.User{})
@@ -149,7 +152,7 @@ func (agd *Agenda) Sync(opt string) error {
 	}
 
 	// Readinfile
-	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0755)
+	file, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return err
 	}
@@ -212,8 +215,80 @@ func (agd *Agenda) Register(name string, password string, email string, number s
 	}
 	return user, nil
 }
-func (agd *Agenda) Login(name string, password string) error {
-	return nil
+func (agd *Agenda) Login(name string, password string) (*entity.User, error) {
+	// Check password and pid
+	curPid := auth.CurrentBashPid()
+
+	authLogin := false
+	var user *entity.User
+	for i := range agd.UserList {
+		user = &agd.UserList[i]
+		if user.Auth(name, password) {
+			authLogin = true
+			if user.IsLogin() {
+				if user.CheckToken(curPid) {
+					// User has login in some bash
+					log.Printf("User '%s' has logined in current bash.\n", name)
+					break
+				}
+			}
+
+			// Other login this user.
+			// Warning: other bash login this user may lost authorization, remove other Log from list
+			l := 0
+			for l < len(agd.LogList) {
+				if agd.LogList[l].UserId == user.Id {
+					if l != len(agd.LogList)-1 {
+						agd.LogList = append(agd.LogList[:l], agd.LogList[l+1:]...)
+					} else {
+						agd.LogList = agd.LogList[:l]
+					}
+					log.Println("Warning: Other bash login this user may lost authorization!")
+				} else {
+					l++
+				}
+			}
+
+			// Login and record current bash pid
+			user.Login()
+			user.UpdateToken(curPid)
+			agd.LogList = append(agd.LogList, entity.Log{UserId: user.Id, Pid: curPid, LastLogDate: user.LastLog})
+			if err := agd.Sync("User"); err != nil {
+				return nil, err
+			}
+			if err := agd.Sync("Log"); err != nil {
+				return nil, err
+			}
+			log.Printf("Login user '%s' successfully!\n", user.Name)
+			break
+		}
+	}
+	if authLogin {
+		return user, nil
+	} else {
+		return nil, errors.New("Invalid password or username")
+	}
+}
+func (agd *Agenda) Auth(name string, password string) error {
+	// Check password and pid
+	curPid := auth.CurrentBashPid()
+
+	authLogin := false
+	for i := range agd.UserList {
+		user := &agd.UserList[i]
+		if user.Auth(name, password) && user.CheckToken(curPid) {
+			authLogin = true
+			log.Println("Current Login User:")
+			fmt.Println(user)
+			break
+		}
+	}
+
+	if authLogin {
+		return nil
+	} else {
+		return errors.New("You have not login!")
+	}
 }
 func (agd *Agenda) Logout(name string) error {
 	return nil
@@ -242,7 +317,7 @@ func InitConfig(dataDir string) error {
 func Register(name string, password string, email string, number string) (*entity.User, error) {
 	return agenda.Register(name, password, email, number)
 }
-func Login(name string, password string) error {
+func Login(name string, password string) (*entity.User, error) {
 	return agenda.Login(name, password)
 }
 func Logout(name string) error {
@@ -256,7 +331,6 @@ func FindUser(name string) *entity.User {
 }
 func RemoveUser(name string) error {
 	return agenda.RemoveUser(name)
-
 }
 func NewMeeting(title string, st time.Time, et time.Time, initiator *entity.User) (*entity.Meeting, error) {
 	return agenda.NewMeeting(title, st, et, initiator)
