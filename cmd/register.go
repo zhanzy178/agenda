@@ -92,7 +92,6 @@ agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
 			cmd.Help()
 			log.Fatal(err)
 		}
-		fmt.Println(password)
 		// Register
 		user, err := agenda.Register(name, password, email, number)
 		if err != nil {

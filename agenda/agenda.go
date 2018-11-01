@@ -8,6 +8,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/zhanzongyuan/agenda/auth"
@@ -15,6 +17,7 @@ import (
 )
 
 var agenda Agenda
+var timeLayout string = "2006-01-02 15:04:05 Mon"
 
 type Agenda struct {
 	LastId int
@@ -277,27 +280,6 @@ func (agd *Agenda) Login(name string, password string) (*entity.User, error) {
 		return nil, errors.New("Invalid password or username")
 	}
 }
-func (agd *Agenda) Auth(name string, password string) error {
-	// Check password and pid
-	curPid := auth.CurrentBashPid()
-
-	authLogin := false
-	for i := range agd.UserList {
-		user := &agd.UserList[i]
-		if user.Auth(name, password) && user.CheckToken(curPid) {
-			authLogin = true
-			log.Println("Current Login User:")
-			fmt.Println(user)
-			break
-		}
-	}
-
-	if authLogin {
-		return nil
-	} else {
-		return errors.New("You have not login!")
-	}
-}
 func (agd *Agenda) Logout() error {
 	user := agd.CurrentUser()
 	if user == nil {
@@ -328,7 +310,63 @@ func (agd *Agenda) Logout() error {
 	fmt.Println(user)
 	return nil
 }
-func (agd *Agenda) CheckUsers(name_list []string) {
+func (agd *Agenda) Auth() error {
+	user := agd.CurrentUser()
+	if user == nil {
+		return errors.New("You have not login!")
+	} else {
+		return nil
+	}
+}
+func (agd *Agenda) CheckUsers() {
+	idW, nameW, emailW, numberW, lastLogW, loginW :=
+		len("Id"), len("Name"), len("Email"), len("Number"), len("Last-Log"), len("Offline")
+	for i := range agd.UserList {
+		user := &agd.UserList[i]
+		idL, nameL, emailL, numberL, lastLogL :=
+			len(strconv.FormatInt(int64(user.Id), 10)), len(user.Name), len(user.Email),
+			len(user.Number), len(user.LastLog.Format(timeLayout))
+		if idW < idL {
+			idW = idL
+		}
+		if nameW < nameL {
+			nameW = nameL
+		}
+		if emailW < emailL {
+			emailW = emailL
+		}
+		if numberW < numberL {
+			numberW = numberL
+		}
+		if lastLogW < lastLogL {
+			lastLogW = lastLogL
+		}
+	}
+	idW += 2
+	nameW += 2
+	emailW += 2
+	numberW += 2
+	loginW += 2
+	lastLogW += 2
+	outputFormat := ""
+	outputFormat += "%-" + strconv.FormatInt(int64(idW), 10) + "s |"
+	outputFormat += "%-" + strconv.FormatInt(int64(nameW), 10) + "s |"
+	outputFormat += "%-" + strconv.FormatInt(int64(emailW), 10) + "s |"
+	outputFormat += "%-" + strconv.FormatInt(int64(numberW), 10) + "s |"
+	outputFormat += "%-" + strconv.FormatInt(int64(loginW), 10) + "s |"
+	outputFormat += "%-" + strconv.FormatInt(int64(lastLogW), 10) + "s\n"
+
+	fmt.Printf(outputFormat, "Id", "Name", "E-mail", "Number", "State", "Last-Log")
+	fmt.Println(strings.Repeat("-", idW+nameW+emailW+numberW+loginW+lastLogW+21))
+	for _, u := range agd.UserList {
+		state := "Offline"
+		if u.IsLogin() {
+			state = "Online"
+		}
+		fmt.Printf(outputFormat, strconv.FormatInt(int64(u.Id), 10),
+			u.Name, u.Email, u.Number, state, u.LastLog.Format(timeLayout))
+	}
+
 }
 func (agd *Agenda) FindUser(name string) *entity.User {
 	return nil
@@ -361,8 +399,8 @@ func Login(name string, password string) (*entity.User, error) {
 func Logout() error {
 	return agenda.Logout()
 }
-func CheckUsers(name_list []string) {
-	agenda.CheckUsers(name_list)
+func CheckUsers() {
+	agenda.CheckUsers()
 }
 func FindUser(name string) *entity.User {
 	return agenda.FindUser(name)
