@@ -21,21 +21,57 @@
 package cmd
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/spf13/cobra"
+	"github.com/zhanzongyuan/agenda/agenda"
 )
 
 // registerCmd represents the register command
 var registerCmd = &cobra.Command{
 	Use:   "register",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Command register your account for agenda system.",
+	Long: `
+	This is a command for agenda account register. 
+You can make use of this system to help you to manage meeting.
+You can register with command format in example.
+E.g.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
+`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Make use of my agenda framework to implement specific function.
+		flag := cmd.Flags()
+		// Register User
+		name, err := flag.GetString("username")
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+		password, err := flag.GetString("password")
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+		email, err := flag.GetString("email")
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+		number, err := flag.GetString("number")
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+
+		user, err := agenda.Register(name, password, email, number)
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
+			return
+		}
+		log.Println("Your account register successfully:")
+		fmt.Println(*user)
 	},
 }
 
@@ -44,7 +80,10 @@ func init() {
 
 	// Here you will define your flags and configuration settings.
 	// TODO: Add Flag here
-
+	registerCmd.Flags().StringP("username", "u", "", "Username for register, it must be unique and not null")
+	registerCmd.Flags().StringP("password", "p", "", "Password for your account, it must be not null")
+	registerCmd.Flags().StringP("email", "e", "", "Email for your account, it must be valid in format 'xxx@xx.xx'")
+	registerCmd.Flags().StringP("number", "n", "", "Number for your account. Default null.")
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// registerCmd.PersistentFlags().String("foo", "", "A help for foo")

@@ -6,11 +6,11 @@ type Meeting struct {
 	Id int
 
 	// Base meeting information
-	Title         string
-	Initiator     User
-	Participators []User
-	StartTime     time.Time
-	EndTime       time.Time
+	Title           string
+	InitiatorId     *int
+	ParticipatorsId []int
+	StartTime       time.Time
+	EndTime         time.Time
 }
 
 // Add or Remove participator
