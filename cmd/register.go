@@ -21,10 +21,12 @@
 package cmd
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -50,28 +52,48 @@ agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
 		// Register User
 
 		// Check username
-		name, err := flag.GetString("username")
+		username, err := flag.GetString("username")
 		if err != nil {
 			cmd.Help()
 			log.Fatal(err)
 		}
-		if err := validate.IsNameValid(name); err != nil {
+		fmt.Print("[Username]: ")
+		if len(username) == 0 {
+			s := bufio.NewScanner(os.Stdin)
+			s.Scan()
+			username = s.Text()
+		} else {
+			fmt.Println(username)
+		}
+		if err := validate.IsNameValid(username); err != nil {
 			log.Fatal(err)
 		}
 
 		// Check password
-		fmt.Print("[Password]:")
-		bytePass, err := terminal.ReadPassword(int(syscall.Stdin))
-		fmt.Println("")
-		password := string(bytePass)
-		if err := validate.IsPasswordValid(password); err != nil {
+		password, err := flag.GetString("password")
+		if err != nil {
+			cmd.Help()
 			log.Fatal(err)
 		}
-		fmt.Print("[Check Password]:")
-		bytePassAg, err := terminal.ReadPassword(int(syscall.Stdin))
-		fmt.Println("")
-		if passwordAg := string(bytePassAg); passwordAg != password {
-			log.Fatal(errors.New("The second password is not same as the first one!"))
+		if len(password) == 0 {
+			fmt.Print("[Password]:")
+			bytePass, _ := terminal.ReadPassword(int(syscall.Stdin))
+			fmt.Println("")
+			password = string(bytePass)
+			if err := validate.IsPasswordValid(password); err != nil {
+				log.Fatal(err)
+			}
+			fmt.Print("[Check Password]:")
+			bytePassAg, _ := terminal.ReadPassword(int(syscall.Stdin))
+			fmt.Println("")
+			if passwordAg := string(bytePassAg); passwordAg != password {
+				log.Fatal(errors.New("The second password is not same as the first one!"))
+			}
+		} else {
+			log.Println("Use command flag password")
+			if err := validate.IsPasswordValid(password); err != nil {
+				log.Fatal(err)
+			}
 		}
 		sha := sha256.New()
 		sha.Write([]byte(password))
@@ -83,6 +105,14 @@ agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
 			cmd.Help()
 			log.Fatal(err)
 		}
+		fmt.Print("[E-mail]: ")
+		if len(email) == 0 {
+			s := bufio.NewScanner(os.Stdin)
+			s.Scan()
+			email = s.Text()
+		} else {
+			fmt.Println(email)
+		}
 		if err := validate.IsEmailValid(email); err != nil {
 			log.Fatal(err)
 		}
@@ -93,11 +123,19 @@ agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
 			cmd.Help()
 			log.Fatal(err)
 		}
+		fmt.Print("[Number]: ")
+		if len(number) == 0 {
+			s := bufio.NewScanner(os.Stdin)
+			s.Scan()
+			number = s.Text()
+		} else {
+			fmt.Println(number)
+		}
 		if err := validate.IsNumberValid(number); len(number) != 0 && err != nil {
 			log.Fatal(err)
 		}
 		// Register
-		user, err := agenda.Register(name, password, email, number)
+		user, err := agenda.Register(username, password, email, number)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -113,6 +151,7 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// TODO: Add Flag here
 	registerCmd.Flags().StringP("username", "u", "", "Username for register, it must be unique and not null")
+	registerCmd.Flags().StringP("password", "p", "", "Password for register")
 	registerCmd.Flags().StringP("email", "e", "", "Email for your account, it must be valid in format 'xxx@xx.xx'")
 	registerCmd.Flags().StringP("number", "n", "", "Number for your account. Default null.")
 	// Cobra supports Persistent Flags which will work for this command

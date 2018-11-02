@@ -49,7 +49,7 @@ func (u User) String() string {
 	if !u.login {
 		state = "Offline"
 	}
-	str := fmt.Sprintf("[User: %d]\n", u.Id)
+	str := fmt.Sprintf("******[User: %d]******\n", u.Id)
 	str += fmt.Sprintln("Name:    ", u.Name)
 	str += fmt.Sprintln("E-mail:  ", u.Email)
 	str += fmt.Sprintln("Number:  ", u.Number)

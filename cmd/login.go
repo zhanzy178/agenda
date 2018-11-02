@@ -21,9 +21,11 @@
 package cmd
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"fmt"
 	"log"
+	"os"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -58,27 +60,36 @@ current bash, you will only get warning.`,
 
 		// Input username
 		if len(username) == 0 {
-			fmt.Print("[Username]:")
-			_, err := fmt.Scan(&username)
-			if err != nil {
-				log.Fatal(err)
-			}
+			fmt.Print("[Username]: ")
+			s := bufio.NewScanner(os.Stdin)
+			s.Scan()
+			username = s.Text()
 		} else {
-			fmt.Println("[Username]:", username)
+			fmt.Println("[Username]: ", username)
 		}
 		if err := validate.IsNameValid(username); err != nil {
 			log.Fatal(err)
 		}
+
 		// Input password
-		fmt.Print("[Password]:")
-		bytePass, err := terminal.ReadPassword(int(syscall.Stdin))
-		password := string(bytePass)
-		fmt.Println("")
-		if err := validate.IsPasswordValid(password); err != nil {
+		password, err := cmd.Flags().GetString("password")
+		if err != nil {
+			cmd.Help()
 			log.Fatal(err)
 		}
+		if len(password) == 0 {
+			fmt.Print("[Password]: ")
+			bytePass, _ := terminal.ReadPassword(int(syscall.Stdin))
+			password = string(bytePass)
+			fmt.Println("")
+			if err := validate.IsPasswordValid(password); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			log.Println("Use password from command flag.")
+		}
 		sha := sha256.New()
-		sha.Write(bytePass)
+		sha.Write([]byte(password))
 		password = fmt.Sprintf("%x", sha.Sum(nil))
 
 		// Login
@@ -87,6 +98,7 @@ current bash, you will only get warning.`,
 			log.Fatal(err)
 		}
 		if user != nil {
+			log.Printf("Login user '%s' successfully!", user.Name)
 			fmt.Println(user)
 		}
 	},
@@ -96,6 +108,7 @@ func init() {
 	rootCmd.AddCommand(loginCmd)
 
 	loginCmd.Flags().StringP("username", "u", "", "Username to login")
+	loginCmd.Flags().StringP("password", "p", "", "Password to login")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

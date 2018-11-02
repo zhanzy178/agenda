@@ -3,6 +3,7 @@ package validate
 import (
 	"errors"
 	"regexp"
+	"time"
 )
 
 var (
@@ -12,11 +13,29 @@ var (
 	NumberRegexp       = `^1[34578]\d{9}$`
 )
 
+func IsTitleValid(title string) error {
+	if len(title) < 3 {
+		return errors.New("Title number must be longer than 2!")
+	}
+	if !(title[0] <= 'Z' && title[0] >= 'A') {
+		return errors.New("First letter of title must be capitalized!")
+	}
+	return nil
+}
+func IsStartEndTimeValid(start time.Time, end time.Time) error {
+	if start.After(end) {
+		return errors.New("Meeting start time must be earlier than end time!")
+	} else if start.Before(time.Now()) {
+		return errors.New("Meeting start time should not be past time!")
+	}
+	return nil
+}
+
 func IsNameValid(name string) error {
 	if len(name) < 3 {
 		return errors.New("Username number must be longer than 2!")
 	}
-	if name[0] <= 'z' && name[0] >= 'a' {
+	if !(name[0] <= 'Z' && name[0] >= 'A') {
 		return errors.New("First letter of username must be capitalized!")
 	}
 	return nil

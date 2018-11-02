@@ -14,17 +14,21 @@ import (
 
 	"github.com/zhanzongyuan/agenda/auth"
 	"github.com/zhanzongyuan/agenda/entity"
+	"github.com/zhanzongyuan/agenda/validate"
 )
 
 var agenda Agenda
 var timeLayout string = "2006-01-02 15:04:05 Mon"
 
 type Agenda struct {
-	LastId int
+	LastUserId    int
+	LastMeetingId int
 
 	UserList    []entity.User
 	MeetingList []entity.Meeting
 	LogList     []entity.Log
+
+	UsernameMap map[string]int
 
 	userDiskFile    string
 	meetingDiskFile string
@@ -52,7 +56,7 @@ func (agd *Agenda) InitConfig(dataDir string) error {
 
 	// Config user, meeting, login disk file
 	agenda.userDiskFile = filepath.Join(dataDir, "user.json")
-	agenda.meetingDiskFile = filepath.Join(dataDir, "meeting,json")
+	agenda.meetingDiskFile = filepath.Join(dataDir, "meeting.json")
 	agenda.loginDiskFile = filepath.Join(dataDir, "curUser.txt")
 
 	// Load data
@@ -106,6 +110,7 @@ func (agd *Agenda) loadList(opt string) error {
 		switch opt {
 		case "User":
 			agd.UserList = agd.UserList[:0]
+			agd.UsernameMap = make(map[string]int)
 		case "Meeting":
 			agd.MeetingList = agd.MeetingList[:0]
 		case "Log":
@@ -123,13 +128,18 @@ func (agd *Agenda) loadList(opt string) error {
 			case "User":
 				agd.UserList = append(agd.UserList, entity.User{})
 				json.Unmarshal([]byte(jsonBlob), &agd.UserList[len(agd.UserList)-1])
-				tId := agd.UserList[len(agd.UserList)-1].Id
-				if tId > agd.LastId {
-					agd.LastId = tId
+				tId, name := agd.UserList[len(agd.UserList)-1].Id, agd.UserList[len(agd.UserList)-1].Name
+				agd.UsernameMap[name] = 1
+				if tId > agd.LastUserId {
+					agd.LastUserId = tId
 				}
 			case "Meeting":
 				agd.MeetingList = append(agd.MeetingList, entity.Meeting{})
 				json.Unmarshal([]byte(jsonBlob), &agd.MeetingList[len(agd.MeetingList)-1])
+				mId := agd.MeetingList[len(agd.MeetingList)-1].Id
+				if mId > agd.LastMeetingId {
+					agd.LastMeetingId = mId
+				}
 			case "Log":
 				agd.LogList = append(agd.LogList, entity.Log{})
 				json.Unmarshal([]byte(jsonBlob), &agd.LogList[len(agd.LogList)-1])
@@ -209,10 +219,11 @@ func (agd *Agenda) Register(name string, password string, email string, number s
 	if err != nil {
 		return nil, err
 	}
-	agd.LastId++
-	user.Id = agd.LastId
+	agd.LastUserId++
+	user.Id = agd.LastUserId
 	agd.UserList = append(agd.UserList, *user)
 	user = &agd.UserList[len(agd.UserList)-1]
+	agd.UsernameMap[user.Name] = 1
 	if err := agd.Sync("User"); err != nil {
 		return user, err
 	}
@@ -270,7 +281,6 @@ func (agd *Agenda) Login(name string, password string) (*entity.User, error) {
 			if err := agd.Sync("Log"); err != nil {
 				return nil, err
 			}
-			log.Printf("Login user '%s' successfully!\n", user.Name)
 			break
 		}
 	}
@@ -310,17 +320,17 @@ func (agd *Agenda) Logout() error {
 	fmt.Println(user)
 	return nil
 }
-func (agd *Agenda) Auth() error {
+func (agd *Agenda) Auth() (*entity.User, error) {
 	user := agd.CurrentUser()
-	log.Printf("Current user '%s'\n", user.Name)
 	if user == nil {
-		return errors.New("You are not login!")
+		return nil, errors.New("You are not login!")
 	} else {
-		return nil
+		log.Printf("Current user '%s'\n", user.Name)
+		return user, nil
 	}
 }
 func (agd *Agenda) CheckUsers() {
-	if err := agd.Auth(); err != nil {
+	if _, err := agd.Auth(); err != nil {
 		log.Fatal(err)
 		return
 	}
@@ -374,6 +384,17 @@ func (agd *Agenda) CheckUsers() {
 
 }
 func (agd *Agenda) FindUser(name string) *entity.User {
+	if _, err := agd.Auth(); err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	for i := range agd.UserList {
+		user := &agd.UserList[i]
+		if user.Name == name {
+			return user
+		}
+	}
+
 	return nil
 }
 func (agd *Agenda) RemoveUser(name string) error {
@@ -381,11 +402,91 @@ func (agd *Agenda) RemoveUser(name string) error {
 }
 
 // Meeting Management
-func (agd *Agenda) NewMeeting(title string, st time.Time, et time.Time, initiator *entity.User) (*entity.Meeting, error) {
-	return nil, nil
+func (agd *Agenda) NewMeeting(title string, st time.Time, et time.Time, parsName []string) (*entity.Meeting, error) {
+	user, err := agd.Auth()
+	if err != nil {
+		return nil, err
+	}
+	meeting := &entity.Meeting{
+		Title:             title,
+		InitiatorName:     user.Name,
+		ParticipatorsName: parsName,
+		StartTime:         st,
+		EndTime:           et,
+	}
+	if err := agd.IsMeetingValid(meeting); err != nil {
+		return nil, err
+	}
+	agd.MeetingList = append(agd.MeetingList, *meeting)
+	meeting = &agd.MeetingList[len(agd.MeetingList)-1]
+	agd.LastMeetingId++
+	meeting.Id = agd.LastMeetingId
+
+	if err := agd.Sync("Meeting"); err != nil {
+		return nil, err
+	}
+	return meeting, nil
 }
 func (agd *Agenda) FindMeeting(title string) (*entity.Meeting, error) {
 	return nil, nil
+}
+func (agd *Agenda) CheckNameList(nameList []string) ([]string, error) {
+	duplicateMap := make(map[string]int)
+	i := 0
+	for i < len(nameList) {
+		n := nameList[i]
+		if agd.UsernameMap[n] == 0 {
+			return nil, errors.New(fmt.Sprintf("User '%s' is not exist", n))
+		}
+		if duplicateMap[n] == 0 {
+			duplicateMap[n] = 1
+			i++
+		} else if duplicateMap[n] == 1 {
+			log.Printf("Username '%s' duplicate!", n)
+			if i == len(nameList)-1 {
+				nameList = nameList[:i]
+			} else {
+				nameList = append(nameList[:i], nameList[i+1:]...)
+			}
+		}
+	}
+	return nameList, nil
+}
+func (agd *Agenda) IsMeetingValid(m *entity.Meeting) error {
+	// Check username
+	pm, err := agd.CheckNameList(m.ParticipatorsName)
+	if err != nil {
+		return err
+	}
+	m.ParticipatorsName = pm
+
+	// Check Time
+	if err := validate.IsStartEndTimeValid(m.StartTime, m.EndTime); err != nil {
+		return err
+	}
+
+	// Check Title
+	if err := validate.IsTitleValid(m.Title); err != nil {
+		return err
+	}
+
+	// Check meeting conflict
+	for i := range agd.MeetingList {
+		meeting := &agd.MeetingList[i]
+		if m.Title == meeting.Title {
+			return errors.New(fmt.Sprintf("Duplicate meeting title '%s'!", m.Title))
+		}
+		if meeting.Conflict(*m) {
+			for _, p := range meeting.ParticipatorsName {
+				for _, mp := range m.ParticipatorsName {
+					if p == mp {
+						return errors.New(fmt.Sprintf("Conflict with meeting '%s'!", meeting.Title))
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // Package Function
@@ -397,6 +498,9 @@ func Register(name string, password string, email string, number string) (*entit
 }
 func CurrentUser() *entity.User {
 	return agenda.CurrentUser()
+}
+func Auth() (*entity.User, error) {
+	return agenda.Auth()
 }
 func Login(name string, password string) (*entity.User, error) {
 	return agenda.Login(name, password)
@@ -413,8 +517,8 @@ func FindUser(name string) *entity.User {
 func RemoveUser(name string) error {
 	return agenda.RemoveUser(name)
 }
-func NewMeeting(title string, st time.Time, et time.Time, initiator *entity.User) (*entity.Meeting, error) {
-	return agenda.NewMeeting(title, st, et, initiator)
+func NewMeeting(title string, st time.Time, et time.Time, parsName []string) (*entity.Meeting, error) {
+	return agenda.NewMeeting(title, st, et, parsName)
 }
 func FindMeeting(title string) (*entity.Meeting, error) {
 	return agenda.FindMeeting(title)

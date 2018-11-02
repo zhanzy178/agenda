@@ -21,6 +21,9 @@
 package cmd
 
 import (
+	"fmt"
+	"log"
+
 	"github.com/spf13/cobra"
 	"github.com/zhanzongyuan/agenda/agenda"
 )
@@ -33,7 +36,22 @@ var userCmd = &cobra.Command{
 you must login your account in current system first.
 After you login, you can start with 'agenda user' to list all user informations, `,
 	Run: func(cmd *cobra.Command, args []string) {
-		agenda.CheckUsers()
+		flag := cmd.Flags()
+		username, err := flag.GetString("username")
+		if err != nil {
+			log.Fatal(err)
+		}
+		if username == "" {
+			agenda.CheckUsers()
+		} else {
+			user := agenda.FindUser(username)
+			if user == nil {
+				log.Printf("User '%s' is not exist!", username)
+			} else {
+				log.Println("Find user: ")
+				fmt.Println(user)
+			}
+		}
 	},
 }
 
@@ -41,7 +59,7 @@ func init() {
 	rootCmd.AddCommand(userCmd)
 
 	// Here you will define your flags and configuration settings.
-	userCmd.Flags().StringP("username", "u", "", "User information you want.")
+	userCmd.Flags().StringP("username", "u", "", "Find the user with this username. (Default list all users).")
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// userCmd.PersistentFlags().String("foo", "", "A help for foo")
