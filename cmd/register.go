@@ -39,13 +39,13 @@ import (
 var registerCmd = &cobra.Command{
 	Use:   "register",
 	Short: "Command register your account for agenda system.",
-	Long: `
-	This is a command for agenda account register. 
+	Long: `This is a command for agenda account register. 
 You can make use of this system to help you to manage meeting.
 You can register with command format in example.
 E.g.
 
-agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
+	agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
+
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		flag := cmd.Flags()

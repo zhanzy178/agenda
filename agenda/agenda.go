@@ -291,10 +291,9 @@ func (agd *Agenda) Login(name string, password string) (*entity.User, error) {
 	}
 }
 func (agd *Agenda) Logout() error {
-	user := agd.CurrentUser()
-	if user == nil {
-		log.Println("There is not user login in current bash!")
-		return nil
+	user, err := agd.Auth()
+	if err != nil {
+		return err
 	}
 	user.Logout()
 	l := 0
@@ -409,7 +408,7 @@ func (agd *Agenda) NewMeeting(title string, st time.Time, et time.Time, parsName
 	}
 	meeting := &entity.Meeting{
 		Title:             title,
-		InitiatorName:     user.Name,
+		SponsorName:       user.Name,
 		ParticipatorsName: parsName,
 		StartTime:         st,
 		EndTime:           et,
@@ -430,7 +429,10 @@ func (agd *Agenda) NewMeeting(title string, st time.Time, et time.Time, parsName
 func (agd *Agenda) FindMeeting(title string) (*entity.Meeting, error) {
 	return nil, nil
 }
-func (agd *Agenda) CheckNameList(nameList []string) ([]string, error) {
+func (agd *Agenda) CheckParticipatorsNameList(nameList []string) ([]string, error) {
+	if len(nameList) == 0 {
+		return nil, errors.New("Empty participators list")
+	}
 	duplicateMap := make(map[string]int)
 	i := 0
 	for i < len(nameList) {
@@ -454,7 +456,7 @@ func (agd *Agenda) CheckNameList(nameList []string) ([]string, error) {
 }
 func (agd *Agenda) IsMeetingValid(m *entity.Meeting) error {
 	// Check username
-	pm, err := agd.CheckNameList(m.ParticipatorsName)
+	pm, err := agd.CheckParticipatorsNameList(m.ParticipatorsName)
 	if err != nil {
 		return err
 	}
@@ -487,6 +489,166 @@ func (agd *Agenda) IsMeetingValid(m *entity.Meeting) error {
 		}
 	}
 	return nil
+}
+func (agd *Agenda) JoinUser(title, name string) error {
+	// Check user online
+	curUser, err := agd.Auth()
+	if err != nil {
+		return err
+	}
+
+	// Check Name
+	if agd.UsernameMap[name] == 0 {
+		return errors.New(fmt.Sprintf("User '%s' is not exist", curUser.Name))
+	}
+
+	// Get user meeting that it participate in
+	ml, _ := agd.UserMeeting(name, false)
+
+	// Check Meeting
+	for i, m := range agd.MeetingList {
+		if m.Title == title {
+			// No access
+			if curUser.Name != m.SponsorName {
+				return errors.New(fmt.Sprintf("You have not access to the meeting '%s'", title))
+			}
+
+			// if user has in meeting or conflict with other meeting
+			for _, meeting := range ml {
+				if meeting.Title == title {
+					return errors.New("User have been in this meeting!")
+				} else if meeting.Conflict(m) {
+					return errors.New(fmt.Sprintf("Conflict with meeting '%s'!", meeting.Title))
+				}
+			}
+
+			// Add user
+			agd.MeetingList[i].ParticipatorsName = append(agd.MeetingList[i].ParticipatorsName, name)
+			if err := agd.Sync("Meeting"); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	return errors.New(fmt.Sprintf("Meeting '%s' is not exist", title))
+}
+func (agd *Agenda) UserMeeting(username string, printOpt bool) ([]entity.Meeting, error) {
+	ml := []entity.Meeting{}
+	for _, m := range agd.MeetingList {
+		for _, n := range m.ParticipatorsName {
+			if n == username {
+				ml = append(ml, m)
+				break
+			}
+		}
+	}
+	return ml, nil
+}
+func (agd *Agenda) MoveoutUser(title, name string) error {
+	// Check user online
+	curUser, err := agd.Auth()
+	if err != nil {
+		return err
+	}
+
+	// Check Name
+	if agd.UsernameMap[name] == 0 {
+		return errors.New(fmt.Sprintf("User '%s' is not exist", curUser.Name))
+	}
+
+	for i := range agd.MeetingList {
+		meeting := &agd.MeetingList[i]
+		if meeting.Title == title {
+			// No access
+			if curUser.Name != meeting.SponsorName {
+				return errors.New(fmt.Sprintf("You have not access to the meeting '%s'", title))
+			}
+
+			// Check name in participater
+			index, join := -1, false
+			for j, p := range meeting.ParticipatorsName {
+				if p == name {
+					index = j
+					join = true
+					break
+				}
+			}
+			if !join {
+				return errors.New("User is not in this meeting")
+			} else {
+				meeting.ParticipatorsName = append(meeting.ParticipatorsName[:index], meeting.ParticipatorsName[index+1:]...)
+				if len(meeting.ParticipatorsName) == 0 {
+					agd.MeetingList = append(agd.MeetingList[:i], agd.MeetingList[i+1:]...)
+				}
+				if err := agd.Sync("Meeting"); err != nil {
+					return err
+				}
+				break
+			}
+		}
+	}
+	return nil
+}
+func (agd *Agenda) CancelMeeting(title string) error {
+	// Check user online
+	curUser, err := agd.Auth()
+	if err != nil {
+		return err
+	}
+
+	for i := range agd.MeetingList {
+		meeting := &agd.MeetingList[i]
+		if meeting.Title == title {
+			// No access
+			if curUser.Name != meeting.SponsorName {
+				return errors.New(fmt.Sprintf("You have not access to the meeting '%s'", title))
+			}
+
+			// Cancel
+			agd.MeetingList = append(agd.MeetingList[:i], agd.MeetingList[i+1:]...)
+			if err := agd.Sync("Meeting"); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
+
+	return errors.New(fmt.Sprintf("Meeting '%s' exist!", title))
+
+}
+func (agd *Agenda) QuitMeeting(title string) error {
+	// Check user online
+	curUser, err := agd.Auth()
+	if err != nil {
+		return err
+	}
+
+	for i := range agd.MeetingList {
+		meeting := &agd.MeetingList[i]
+		if meeting.Title == title {
+			index, pa := -1, false
+			for j, p := range meeting.ParticipatorsName {
+				if p == curUser.Name {
+					index, pa = j, true
+					break
+				}
+			}
+			if !pa {
+				return errors.New(fmt.Sprintf("Current user '%s' is not in this meeting '%s'", curUser.Name, title))
+			} else {
+				meeting.ParticipatorsName = append(meeting.ParticipatorsName[:index], meeting.ParticipatorsName[index+1:]...)
+				if len(meeting.ParticipatorsName) == 0 {
+					agd.MeetingList = append(agd.MeetingList[:i], agd.MeetingList[i+1:]...)
+				}
+				if err := agd.Sync("Meeting"); err != nil {
+					return err
+				}
+				return nil
+			}
+		}
+	}
+	return errors.New(fmt.Sprintf("Meeting '%s' is not exist", title))
 }
 
 // Package Function
@@ -522,4 +684,16 @@ func NewMeeting(title string, st time.Time, et time.Time, parsName []string) (*e
 }
 func FindMeeting(title string) (*entity.Meeting, error) {
 	return agenda.FindMeeting(title)
+}
+func JoinUser(title string, name string) error {
+	return agenda.JoinUser(title, name)
+}
+func MoveoutUser(title string, name string) error {
+	return agenda.MoveoutUser(title, name)
+}
+func CancelMeeting(title string) error {
+	return agenda.CancelMeeting(title)
+}
+func QuitMeeting(title string) error {
+	return agenda.QuitMeeting(title)
 }

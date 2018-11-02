@@ -12,7 +12,7 @@ type Meeting struct {
 
 	// Base meeting information
 	Title             string
-	InitiatorName     string
+	SponsorName       string
 	ParticipatorsName []string
 	StartTime         time.Time
 	EndTime           time.Time
@@ -38,9 +38,9 @@ func (m *Meeting) String() string {
 	indent := "  "
 	str := fmt.Sprintf("******[Meeting: %d]******\n", m.Id)
 	str += fmt.Sprintln("Title: ", m.Title)
-	str += fmt.Sprintln("Initiator: ", m.InitiatorName)
+	str += fmt.Sprintln("Sponsor: ", m.SponsorName)
 	str += fmt.Sprintln("Time: ")
-	str += fmt.Sprintf("%sSince (%s)\n%sTo (%s)\n",
+	str += fmt.Sprintf("%sSince (%s)\n%sTo    (%s)\n",
 		indent, m.StartTime.Format(timeLayout), indent, m.EndTime.Format(timeLayout))
 
 	str += fmt.Sprintln("Participators: ")

@@ -25,38 +25,22 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/zhanzongyuan/agenda/agenda"
+	ftime "github.com/zhanzongyuan/agenda/cmd/flagtime"
+	"github.com/zhanzongyuan/agenda/cmd/utils"
 	"github.com/zhanzongyuan/agenda/validate"
 )
 
-// Time for flag parse
-type Time time.Time
-
-func (t *Time) Type() string {
-	return fmt.Sprintf("%T", *t)
-}
-func (t *Time) Set(s string) error {
-	ti, err := time.Parse(timeLayout, s)
-	if err != nil {
-		return err
-	}
-	*t = Time(ti)
-	return nil
-}
-func (t *Time) String() string {
-	return time.Time(*t).Format("2006-01-02 15:04:05 Mon")
-}
-
 // global variable
 var (
-	startTime  Time
-	endTime    Time
-	nullTime   time.Time
-	parsName   []string
-	timeLayout string = "2006-1-2 15:04"
+	startTime ftime.Time
+	endTime   ftime.Time
+	nullTime  time.Time
+	parsName  []string
 )
 
 // cmCmd represents the cm command
@@ -66,60 +50,49 @@ var cmCmd = &cobra.Command{
 	Long: `You must login your account before create meeting,
 Please input your meeting title, start time, stop time, participator name`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Parse flag
 		flag := cmd.Flags()
-		curUser, err := agenda.Auth()
-		if err != nil {
-			log.Fatal(err)
-		}
-		// Check title
 		title, err := flag.GetString("title")
 		if err != nil {
 			cmd.Help()
 			log.Fatal(err)
 		}
-		fmt.Print("[Meeting title]: ")
-		if title == "" {
-			s := bufio.NewScanner(os.Stdin)
-			s.Scan()
-			title = s.Text()
-		} else {
-			fmt.Println(title)
+		participateStr, err := flag.GetString("participators")
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
 		}
+		parseStr := strings.Split(participateStr, ",")
+		for _, s := range parseStr {
+			if len(s) != 0 {
+				parsName = append(parsName, s)
+			}
+		}
+
+		// Auth
+		_, err = agenda.Auth()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Check title
+		utils.Scan(&title, "[Meeting title]: ", "[Meeting title]: ")
 		if err := validate.IsTitleValid(title); err != nil {
 			log.Fatal(err)
 		}
 
 		// Check start time and end time
+		utils.ScanFtime(
+			&startTime,
+			fmt.Sprintf("[Start time] (e.g. %s): ", time.Now().Format(ftime.Layout)),
+			"[Start time]: ",
+		)
+		utils.ScanFtime(
+			&endTime,
+			fmt.Sprintf("[End time] (e.g. %s): ", time.Now().Format(ftime.Layout)),
+			"[End time]: ",
+		)
 		st, et := time.Time(startTime), time.Time(endTime)
-
-		if st == nullTime {
-			fmt.Printf("[Start time] (e.g. %s): ", time.Now().Format(timeLayout))
-			s := bufio.NewScanner(os.Stdin)
-			s.Scan()
-			stStr := s.Text()
-			ti, err := time.Parse(timeLayout, stStr)
-			if err != nil {
-				log.Fatal(err)
-			}
-			st = ti
-		} else {
-			fmt.Print("[Start time]: ")
-			fmt.Println(st.Format(timeLayout))
-		}
-		if et == nullTime {
-			fmt.Printf("[End time] (e.g. %s): ", time.Now().Format(timeLayout))
-			s := bufio.NewScanner(os.Stdin)
-			s.Scan()
-			etStr := s.Text()
-			ti, err := time.Parse(timeLayout, etStr)
-			if err != nil {
-				log.Fatal(err)
-			}
-			et = ti
-		} else {
-			fmt.Print("[End time]: ")
-			fmt.Println(et.Format(timeLayout))
-		}
 		if err := validate.IsStartEndTimeValid(st, et); err != nil {
 			log.Fatal(err)
 		}
@@ -142,7 +115,6 @@ Please input your meeting title, start time, stop time, participator name`,
 				}
 			}
 		}
-		parsName = append(parsName, curUser.Name)
 		fmt.Print("[Participators]: ")
 		for _, s := range parsName {
 			fmt.Print(s, ", ")
@@ -170,7 +142,7 @@ func init() {
 	cmCmd.Flags().StringP("title", "t", "", "Meeting title")
 	cmCmd.Flags().VarP(&startTime, "start", "s", "Meeting start time")
 	cmCmd.Flags().VarP(&endTime, "end", "e", "Meeting end time")
-	cmCmd.Flags().StringArrayP("participators", "p", parsName, "Meeting participators list")
+	cmCmd.Flags().StringP("participators", "p", "", "Meeting participators list")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
