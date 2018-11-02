@@ -28,13 +28,10 @@ import (
 // userCmd represents the user command
 var userCmd = &cobra.Command{
 	Use:   "user",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Command to list all user informations in system",
+	Long: `To get access to this command, 
+you must login your account in current system first.
+After you login, you can start with 'agenda user' to list all user informations, `,
 	Run: func(cmd *cobra.Command, args []string) {
 		agenda.CheckUsers()
 	},

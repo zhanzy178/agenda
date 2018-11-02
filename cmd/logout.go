@@ -21,7 +21,10 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"log"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/zhanzongyuan/agenda/agenda"
@@ -30,16 +33,27 @@ import (
 // logoutCmd represents the logout command
 var logoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Command logout your current account",
+	Long: `Command will logout your current login account,
+so please be careful.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := agenda.Logout(); err != nil {
-			log.Fatal(err)
+		user := agenda.CurrentUser()
+		if user == nil {
+			log.Fatal(errors.New("You are not login!"))
+		}
+
+		ensure := ""
+		for strings.ToLower(ensure) != "y" && strings.ToLower(ensure) != "n" {
+			fmt.Printf("Are you should to logout current user '%s'?[Y/n]", user.Name)
+			fmt.Scanln(&ensure)
+			if ensure == "" {
+				ensure = "y"
+			}
+		}
+		if strings.ToLower(ensure) == "y" {
+			if err := agenda.Logout(); err != nil {
+				log.Fatal(err)
+			}
 		}
 	},
 }

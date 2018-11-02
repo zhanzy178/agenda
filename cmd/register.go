@@ -22,12 +22,15 @@ package cmd
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"log"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/zhanzongyuan/agenda/agenda"
 	"github.com/zhanzongyuan/agenda/validate"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // registerCmd represents the register command
@@ -53,19 +56,22 @@ agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
 			log.Fatal(err)
 		}
 		if err := validate.IsNameValid(name); err != nil {
-			cmd.Help()
 			log.Fatal(err)
 		}
 
 		// Check password
-		password, err := flag.GetString("password")
-		if err != nil {
-			cmd.Help()
+		fmt.Print("[Password]:")
+		bytePass, err := terminal.ReadPassword(int(syscall.Stdin))
+		fmt.Println("")
+		password := string(bytePass)
+		if err := validate.IsPasswordValid(password); err != nil {
 			log.Fatal(err)
 		}
-		if err := validate.IsPasswordValid(password); err != nil {
-			cmd.Help()
-			log.Fatal(err)
+		fmt.Print("[Check Password]:")
+		bytePassAg, err := terminal.ReadPassword(int(syscall.Stdin))
+		fmt.Println("")
+		if passwordAg := string(bytePassAg); passwordAg != password {
+			log.Fatal(errors.New("The second password is not same as the first one!"))
 		}
 		sha := sha256.New()
 		sha.Write([]byte(password))
@@ -78,7 +84,6 @@ agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
 			log.Fatal(err)
 		}
 		if err := validate.IsEmailValid(email); err != nil {
-			cmd.Help()
 			log.Fatal(err)
 		}
 
@@ -89,7 +94,6 @@ agenda register -uYourName -pYourPassword -eYourEmail -nYourNumber
 			log.Fatal(err)
 		}
 		if err := validate.IsNumberValid(number); len(number) != 0 && err != nil {
-			cmd.Help()
 			log.Fatal(err)
 		}
 		// Register
@@ -109,7 +113,6 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// TODO: Add Flag here
 	registerCmd.Flags().StringP("username", "u", "", "Username for register, it must be unique and not null")
-	registerCmd.Flags().StringP("password", "p", "", "Password for your account, it must be not null")
 	registerCmd.Flags().StringP("email", "e", "", "Email for your account, it must be valid in format 'xxx@xx.xx'")
 	registerCmd.Flags().StringP("number", "n", "", "Number for your account. Default null.")
 	// Cobra supports Persistent Flags which will work for this command

@@ -312,13 +312,18 @@ func (agd *Agenda) Logout() error {
 }
 func (agd *Agenda) Auth() error {
 	user := agd.CurrentUser()
+	log.Printf("Current user '%s'\n", user.Name)
 	if user == nil {
-		return errors.New("You have not login!")
+		return errors.New("You are not login!")
 	} else {
 		return nil
 	}
 }
 func (agd *Agenda) CheckUsers() {
+	if err := agd.Auth(); err != nil {
+		log.Fatal(err)
+		return
+	}
 	idW, nameW, emailW, numberW, lastLogW, loginW :=
 		len("Id"), len("Name"), len("Email"), len("Number"), len("Last-Log"), len("Offline")
 	for i := range agd.UserList {
