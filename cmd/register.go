@@ -57,6 +57,7 @@ E.g.
 			cmd.Help()
 			log.Fatal(err)
 		}
+		fmt.Println("Please input your username with first letter capitalized.")
 		fmt.Print("[Username]: ")
 		if len(username) == 0 {
 			s := bufio.NewScanner(os.Stdin)

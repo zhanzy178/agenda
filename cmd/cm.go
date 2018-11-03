@@ -92,6 +92,7 @@ Please input your meeting title, start time, stop time, participator name`,
 		}
 
 		// Check title
+		fmt.Println("Please input meeting title with first letter capitalized.")
 		utils.Scan(&title, "[Meeting title]: ", "[Meeting title]: ")
 		if err := validate.IsTitleValid(title); err != nil {
 			log.Fatal(err)
