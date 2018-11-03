@@ -1,4 +1,4 @@
-# Agenda Meeting System
+# Agenda
 ​	Agenda is a CLI command tool, which will help team to manage their meetings on bash. It is the best way for you to cooperate with other user on shell.
 
 ![demo](asserts/demo.GIF)
