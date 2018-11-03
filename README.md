@@ -1,7 +1,7 @@
-# Agenda Meeting Manager
+# Agenda Meeting System
 ​	Agenda is a CLI command tool, which will help team to manage their meetings on bash. It is the best way for you to cooperate with other user on shell.
 
-
+![demo](asserts/demo.GIF)
 
 ## Installation
 
@@ -72,7 +72,7 @@ Use "agenda [command] --help" for more information about a command.
 
 ​	**Note**: You username must be unique in agenda system, and the first letter must be capitalized, or command will throw error.
 
-
+</br>
 
 ### agenda login
 
@@ -80,7 +80,7 @@ Use "agenda [command] --help" for more information about a command.
 
 ​	**Note**: If you login in an account logined, the account will be forced to logout on other shell.
 
-
+</br>
 
 ### agenda logout
 
@@ -88,13 +88,13 @@ Use "agenda [command] --help" for more information about a command.
 
 ​	Once you logout your current accout and stay in an unlogined state, then what commands you can use are only `agenda login` and `agenda register`
 
-
+</br>
 
 ### agenda state
 
 ​	The `agenda state` command will list your current user state, which means you should  login before use this command.
 
-
+</br>
 
 ### agenda user
 
@@ -108,33 +108,33 @@ Id   |Name     |E-mail                  |Number        |State     |Last-Log
 -----------------------------------------------------------------------------------------
 ```
 
-
+</br>
 
 ### agenda delete
 
 ​	The `agenda delete` command will delete your current account. So be carefule to use it. You have a chance to comfirm during the operation.
 
-
+</br>
 
 ### agenda cm
 
 ​	The `agenda cm` command will create a meeting with meeting's Title, Start time and End time and particapators. 
 
-​	Note : The first letter of title must be capitalized, or command will throw error. Also, the participator should not be empty, otherwise the meeting will not be created successfully.
+​	**Note** : The first letter of title must be capitalized, or command will throw error. Also, the participator should not be empty, otherwise the meeting will not be created successfully.
 
-
+</br>
 
 ### agenda cancel
 
 ​	The `agenda cancel` command will cancel the certain meeting you have created with a certain meeting title. You have a chance to comfirm during the operation.
 
-
+</br>
 
 ### agenda join
 
 ​	The `agenda join` command will join other user to a certain meeting you initate. Make sure that the user you invite exist. 
 
-
+</br>
 
 ### agenda meeting
 
@@ -150,23 +150,26 @@ Id   |Title   |Sponsor   |Since                     |To                        |
 ------------------------------------------------------------------------------------------------
 ```
 
-
+</br>
 
 
 ### agenda moveout
 
 ​	The `agenda moveout` move out user from meeting participators. Make sure that the user you move out from meeting is in the participators list. 
 
-
+</br>
 
 ### agenda quit
 
 ​	The `agenda quit` command quit a meeting you participated in.  Make sure that you are in the participators list instead of the sponsor.
 
-
+</br>
 
 ### agenda clear
 
 ​	The `agenda clear` command will cancel all meetings. 
 
-​	Note : All meetings will be clear, no matter whether you are the sponsor or participator of the meeting or nor, even the meeting has nothing to do with you.
+​	**Note** : All meetings will be clear, no matter whether you are the sponsor or participator of the meeting or nor, even the meeting has nothing to do with you.
+
+
+
