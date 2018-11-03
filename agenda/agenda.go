@@ -70,6 +70,7 @@ func (agd *Agenda) InitConfig(dataDir string) error {
 // Disk Storage
 func (agd *Agenda) Load() error {
 	// Load and decode User list
+	agd.UsernameMap = make(map[string]int)
 	if err := agd.loadList("User"); err != nil {
 		return err
 	}
@@ -110,7 +111,6 @@ func (agd *Agenda) loadList(opt string) error {
 		switch opt {
 		case "User":
 			agd.UserList = agd.UserList[:0]
-			agd.UsernameMap = make(map[string]int)
 		case "Meeting":
 			agd.MeetingList = agd.MeetingList[:0]
 		case "Log":
