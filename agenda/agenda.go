@@ -492,7 +492,7 @@ func (agd *Agenda) JoinUser(title, name string) error {
 
 	// Check Name
 	if agd.UsernameMap[name] == 0 {
-		return errors.New(fmt.Sprintf("User '%s' is not exist", curUser.Name))
+		return errors.New(fmt.Sprintf("User '%s' is not exist", name))
 	}
 
 	// Get user meeting that it participate in
