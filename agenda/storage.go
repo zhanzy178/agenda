@@ -1,3 +1,15 @@
+package agenda
+
+import (
+	"bufio"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/zhanzongyuan/agenda/entity"
+)
 
 // Disk Storage
 func (agd *Agenda) Load() error {

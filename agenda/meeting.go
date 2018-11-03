@@ -1,3 +1,16 @@
+package agenda
+
+import (
+	"errors"
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/zhanzongyuan/agenda/entity"
+	"github.com/zhanzongyuan/agenda/validate"
+)
 
 // Meeting Management
 func (agd *Agenda) NewMeeting(title string, st time.Time, et time.Time, parsName []string) (*entity.Meeting, error) {

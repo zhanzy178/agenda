@@ -1,3 +1,13 @@
+package agenda
+
+import (
+	"errors"
+	"fmt"
+	"log"
+
+	"github.com/zhanzongyuan/agenda/auth"
+	"github.com/zhanzongyuan/agenda/entity"
+)
 
 // User Management
 func (agd *Agenda) Register(name string, password string, email string, number string) (*entity.User, error) {

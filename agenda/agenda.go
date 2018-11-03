@@ -1,20 +1,13 @@
 package agenda
 
 import (
-	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/zhanzongyuan/agenda/auth"
 	"github.com/zhanzongyuan/agenda/entity"
-	"github.com/zhanzongyuan/agenda/validate"
 )
 
 var agenda Agenda
