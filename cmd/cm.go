@@ -118,7 +118,8 @@ Please input your meeting title, start time, stop time, participator name`,
 			name := "ini"
 			s := bufio.NewScanner(os.Stdin)
 			for len(name) != 0 {
-				fmt.Print("[Input participator] (input nothing and press <enter> to complete): ")
+				fmt.Println("[Input participator] (input nothing and press <enter> to complete): ")
+				fmt.Println("(It should be at least one participator except you.)")
 				s.Scan()
 				name = s.Text()
 				err := validate.IsNameValid(name)
