@@ -38,6 +38,7 @@ var deleteCmd = &cobra.Command{
 If you delete your account, all meetings you initial will be cancel.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		user := agenda.CurrentUser()
+		username := user.Name
 		if user == nil {
 			log.Fatal(errors.New("You are not login!"))
 		}
@@ -54,7 +55,7 @@ If you delete your account, all meetings you initial will be cancel.`,
 			if err := agenda.DeleteUser(); err != nil {
 				log.Fatal(err)
 			}
-			log.Printf("User '%s' is deleted from agenda system now!", user.Name)
+			log.Printf("User '%s' is deleted from agenda system now!", username)
 		}
 
 	},
