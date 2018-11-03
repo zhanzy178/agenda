@@ -244,7 +244,7 @@ func (agd *Agenda) CurrentUser() *entity.User {
 	return nil
 }
 
-func (agd *Agenda) Login(name string, password string) (*entity.User, error) {
+func (agd *Agenda) Login(name, password string) (*entity.User, error) {
 	// Check password and pid
 	curPid := auth.CurrentBashPid()
 
@@ -260,11 +260,7 @@ func (agd *Agenda) Login(name string, password string) (*entity.User, error) {
 			l := 0
 			for l < len(agd.LogList) {
 				if agd.LogList[l].UserId == user.Id {
-					if l != len(agd.LogList)-1 {
-						agd.LogList = append(agd.LogList[:l], agd.LogList[l+1:]...)
-					} else {
-						agd.LogList = agd.LogList[:l]
-					}
+					agd.LogList = append(agd.LogList[:l], agd.LogList[l+1:]...)
 					log.Println("Warning: Other bash login this user may lost authorization!")
 				} else {
 					l++
@@ -300,11 +296,7 @@ func (agd *Agenda) Logout() error {
 	curPid := auth.CurrentBashPid()
 	for l < len(agd.LogList) {
 		if agd.LogList[l].UserId == user.Id || agd.LogList[l].Token == curPid {
-			if l != len(agd.LogList)-1 {
-				agd.LogList = append(agd.LogList[:l], agd.LogList[l+1:]...)
-			} else {
-				agd.LogList = agd.LogList[:l]
-			}
+			agd.LogList = append(agd.LogList[:l], agd.LogList[l+1:]...)
 		} else {
 			l++
 		}
@@ -349,7 +341,61 @@ func (agd *Agenda) FindUser(name string) *entity.User {
 
 	return nil
 }
-func (agd *Agenda) RemoveUser(name string) error {
+func (agd *Agenda) DeleteUser() error {
+	// Check user online
+	curUser, err := agd.Auth()
+	if err != nil {
+		return err
+	}
+
+	// Delete Log state
+	i := 0
+	for i < len(agd.LogList) {
+		if agd.LogList[i].UserId == curUser.Id {
+			agd.LogList = append(agd.LogList[:i], agd.LogList[i+1:]...)
+		} else {
+			i++
+		}
+	}
+
+	// Delete Meeting
+	i = 0
+	for i < len(agd.MeetingList) {
+		if agd.MeetingList[i].SponsorName == curUser.Name {
+			agd.MeetingList = append(agd.MeetingList[:i], agd.MeetingList[i+1:]...)
+		} else {
+			pars := &agd.MeetingList[i].ParticipatorsName
+			for i, p := range *pars {
+				if p == curUser.Name {
+					*pars = append((*pars)[:i], (*pars)[i+1:]...)
+					break
+				}
+			}
+			if len(*pars) == 0 {
+				agd.MeetingList = append(agd.MeetingList[:i], agd.MeetingList[i+1:]...)
+			} else {
+				i++
+			}
+		}
+	}
+
+	// Delete user
+	for j := range agd.UserList {
+		if agd.UserList[j].Name == curUser.Name {
+			agd.UserList = append(agd.UserList[:j], agd.UserList[j+1:]...)
+			break
+		}
+	}
+
+	if err = agd.Sync("User"); err != nil {
+		return err
+	}
+	if err = agd.Sync("Meeting"); err != nil {
+		return err
+	}
+	if err = agd.Sync("Log"); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -396,11 +442,7 @@ func (agd *Agenda) CheckParticipatorsNameList(nameList []string) ([]string, erro
 			i++
 		} else if duplicateMap[n] == 1 {
 			log.Printf("Username '%s' duplicate!", n)
-			if i == len(nameList)-1 {
-				nameList = nameList[:i]
-			} else {
-				nameList = append(nameList[:i], nameList[i+1:]...)
-			}
+			nameList = append(nameList[:i], nameList[i+1:]...)
 		}
 	}
 	return nameList, nil
@@ -817,9 +859,6 @@ func CheckUsers() {
 func FindUser(name string) *entity.User {
 	return agenda.FindUser(name)
 }
-func RemoveUser(name string) error {
-	return agenda.RemoveUser(name)
-}
 func NewMeeting(title string, st time.Time, et time.Time, parsName []string) (*entity.Meeting, error) {
 	return agenda.NewMeeting(title, st, et, parsName)
 }
@@ -843,4 +882,7 @@ func AllMeetings() ([]entity.Meeting, error) {
 }
 func CheckMeetings(st time.Time, et time.Time) ([]entity.Meeting, error) {
 	return agenda.CheckMeetings(st, et)
+}
+func DeleteUser() error {
+	return agenda.DeleteUser()
 }

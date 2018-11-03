@@ -21,23 +21,42 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/zhanzongyuan/agenda/agenda"
 )
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Command will delete your current account.",
+	Long: `Please be careful about this operation.
+If you delete your account, all meetings you initial will be cancel.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete called")
+		user := agenda.CurrentUser()
+		if user == nil {
+			log.Fatal(errors.New("You are not login!"))
+		}
+
+		ensure := ""
+		for strings.ToLower(ensure) != "y" && strings.ToLower(ensure) != "n" {
+			fmt.Printf("All your meetings will be canceled.\nAre you should to delete current user '%s'?[Y/n]", user.Name)
+			fmt.Scanln(&ensure)
+			if ensure == "" {
+				ensure = "y"
+			}
+		}
+		if strings.ToLower(ensure) == "y" {
+			if err := agenda.DeleteUser(); err != nil {
+				log.Fatal(err)
+			}
+			log.Printf("User '%s' is deleted from agenda system now!", user.Name)
+		}
+
 	},
 }
 

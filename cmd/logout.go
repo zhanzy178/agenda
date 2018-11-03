@@ -54,6 +54,7 @@ so please be careful.`,
 			if err := agenda.Logout(); err != nil {
 				log.Fatal(err)
 			}
+			log.Println("Logout successfully!")
 		}
 	},
 }
