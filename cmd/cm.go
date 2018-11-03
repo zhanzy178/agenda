@@ -30,17 +30,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/zhanzongyuan/agenda/agenda"
-	ftime "github.com/zhanzongyuan/agenda/cmd/flagtime"
 	"github.com/zhanzongyuan/agenda/cmd/utils"
 	"github.com/zhanzongyuan/agenda/validate"
-)
-
-// global variable
-var (
-	startTime ftime.Time
-	endTime   ftime.Time
-	nullTime  time.Time
-	parsName  []string
 )
 
 // cmCmd represents the cm command
@@ -50,12 +41,37 @@ var cmCmd = &cobra.Command{
 	Long: `You must login your account before create meeting,
 Please input your meeting title, start time, stop time, participator name`,
 	Run: func(cmd *cobra.Command, args []string) {
+		title := ""
+		startTime, endTime := time.Time{}, time.Time{}
+		parsName := []string{}
 		// Parse flag
 		flag := cmd.Flags()
 		title, err := flag.GetString("title")
 		if err != nil {
 			cmd.Help()
 			log.Fatal(err)
+		}
+		stStr, err := flag.GetString("start")
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+		if len(stStr) != 0 {
+			startTime, err = time.Parse(utils.Layout, stStr)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		etStr, err := flag.GetString("end")
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+		if len(etStr) != 0 {
+			endTime, err = time.Parse(utils.Layout, etStr)
+			if err != nil {
+				log.Fatal(err)
+			}
 		}
 		participateStr, err := flag.GetString("participators")
 		if err != nil {
@@ -84,16 +100,15 @@ Please input your meeting title, start time, stop time, participator name`,
 		// Check start time and end time
 		utils.ScanFtime(
 			&startTime,
-			fmt.Sprintf("[Start time] (e.g. %s): ", time.Now().Format(ftime.Layout)),
+			fmt.Sprintf("[Start time] (e.g. %s): ", time.Now().Format(utils.Layout)),
 			"[Start time]: ",
 		)
 		utils.ScanFtime(
 			&endTime,
-			fmt.Sprintf("[End time] (e.g. %s): ", time.Now().Format(ftime.Layout)),
+			fmt.Sprintf("[End time] (e.g. %s): ", time.Now().Format(utils.Layout)),
 			"[End time]: ",
 		)
-		st, et := time.Time(startTime), time.Time(endTime)
-		if err := validate.IsStartEndTimeValid(st, et); err != nil {
+		if err := validate.IsStartEndTimeValid(startTime, endTime); err != nil {
 			log.Fatal(err)
 		}
 
@@ -122,7 +137,7 @@ Please input your meeting title, start time, stop time, participator name`,
 		fmt.Println("")
 
 		// Try to create new meeting
-		m, err := agenda.NewMeeting(title, st, et, parsName)
+		m, err := agenda.NewMeeting(title, startTime, endTime, parsName)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -140,8 +155,8 @@ func init() {
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	cmCmd.Flags().StringP("title", "t", "", "Meeting title")
-	cmCmd.Flags().VarP(&startTime, "start", "s", "Meeting start time")
-	cmCmd.Flags().VarP(&endTime, "end", "e", "Meeting end time")
+	cmCmd.Flags().StringP("start", "s", "", "Meeting start time")
+	cmCmd.Flags().StringP("end", "e", "", "Meeting end time")
 	cmCmd.Flags().StringP("participators", "p", "", "Meeting participators list")
 
 	// Cobra supports local flags which will only run when this command

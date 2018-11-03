@@ -22,64 +22,31 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/zhanzongyuan/agenda/agenda"
-	"github.com/zhanzongyuan/agenda/cmd/utils"
 )
 
-// cancelCmd represents the cancel command
-var cancelCmd = &cobra.Command{
-	Use:   "cancel",
-	Short: "Command to cancel meeting you initial.",
-	Long: `You can use this command to cancel meeting.
-You must be careful to cancel meeting.
-If you cancel meeting, all meeting information will be remove.`,
+// clearCmd represents the clear command
+var clearCmd = &cobra.Command{
+	Use:   "clear",
+	Short: "Command to cancel all meeting you initial.",
+	Long: `You must login first to get access to clear all your meeting.
+Please be careful if you use this command.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Parse flag
-		flag := cmd.Flags()
-		title, err := flag.GetString("title")
-		if err != nil {
-			cmd.Help()
-			log.Fatal(err)
-		}
-
-		// Title
-		utils.Scan(&title, "[Title]: ", "[Title]: ")
-
-		// ensure
-		ensure := ""
-		for strings.ToLower(ensure) != "y" && strings.ToLower(ensure) != "n" {
-			fmt.Printf("Are you should to cancel meeting '%s'?[Y/n]", title)
-			fmt.Scanln(&ensure)
-			if ensure == "" {
-				ensure = "y"
-			}
-		}
-		if strings.ToLower(ensure) == "y" {
-			if err := agenda.CancelMeeting(title); err != nil {
-				log.Fatal(err)
-			} else {
-				log.Printf("Cancel meeting '%s' successfully!", title)
-			}
-		}
-
+	
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(cancelCmd)
+	rootCmd.AddCommand(clearCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// cancelCmd.PersistentFlags().String("foo", "", "A help for foo")
-	cancelCmd.Flags().StringP("title", "t", "", "Meeting title you specific to canncel")
+	// clearCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// cancelCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// clearCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

@@ -6,8 +6,11 @@ import (
 	"log"
 	"os"
 	"time"
+)
 
-	ftime "github.com/zhanzongyuan/agenda/cmd/flagtime"
+var (
+	Layout   string = "2006-1-2 15:04"
+	NullTime time.Time
 )
 
 func Scan(target *string, emptyMsg, nemptyMsg string) {
@@ -21,21 +24,20 @@ func Scan(target *string, emptyMsg, nemptyMsg string) {
 	}
 }
 
-func ScanFtime(t *ftime.Time, emptyMsg, nemptyMsg string) {
-	tt := (*time.Time)(t)
+func ScanFtime(t *time.Time, emptyMsg, nemptyMsg string) {
 
-	if *tt == ftime.NullTime {
+	if *t == NullTime {
 		fmt.Print(emptyMsg)
 		s := bufio.NewScanner(os.Stdin)
 		s.Scan()
 		stStr := s.Text()
-		ti, err := time.Parse(ftime.Layout, stStr)
+		ti, err := time.Parse(Layout, stStr)
 		if err != nil {
 			log.Fatal(err)
 		}
-		*tt = ti
+		*t = ti
 	} else {
 		fmt.Print(nemptyMsg)
-		fmt.Println(tt.Format(ftime.Layout))
+		fmt.Println(t.Format(Layout))
 	}
 }

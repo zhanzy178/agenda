@@ -21,23 +21,80 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/zhanzongyuan/agenda/agenda"
+	"github.com/zhanzongyuan/agenda/cmd/utils"
 )
 
 // meetingCmd represents the meeting command
 var meetingCmd = &cobra.Command{
 	Use:   "meeting",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Command list meeting table you specific during time interval.",
+	Long: `Using this command you can get a table of the meeting that you
+initial or you join. You can also setting time interval to filer this table.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("meeting called")
+		startTime, endTime := time.Time{}, time.Time{}
+		// Parse flag
+		flag := cmd.Flags()
+		showAll, err := flag.GetBool("all")
+		if err != nil {
+			cmd.Help()
+			log.Fatal(err)
+		}
+
+		if !showAll {
+			stStr, err := flag.GetString("start")
+			if err != nil {
+				cmd.Help()
+				log.Fatal(err)
+			}
+			if len(stStr) != 0 {
+				startTime, err = time.Parse(utils.Layout, stStr)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+			etStr, err := flag.GetString("end")
+			if err != nil {
+				cmd.Help()
+				log.Fatal(err)
+			}
+			if len(etStr) != 0 {
+				endTime, err = time.Parse(utils.Layout, etStr)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
+
+			// Check start time and end time
+			utils.ScanFtime(
+				&startTime,
+				fmt.Sprintf("[Start time] (e.g. %s): ", time.Now().Format(utils.Layout)),
+				"[Start time]: ",
+			)
+			utils.ScanFtime(
+				&endTime,
+				fmt.Sprintf("[End time] (e.g. %s): ", time.Now().Format(utils.Layout)),
+				"[End time]: ",
+			)
+			if startTime.After(endTime) {
+				log.Fatal(errors.New("Start time must be earlier than end time."))
+			}
+
+			if _, err := agenda.CheckMeetings(startTime, endTime); err != nil {
+				log.Fatal(err)
+			}
+		} else {
+			if _, err := agenda.AllMeetings(); err != nil {
+				log.Fatal(err)
+			}
+		}
+
 	},
 }
 
@@ -45,7 +102,9 @@ func init() {
 	rootCmd.AddCommand(meetingCmd)
 
 	// Here you will define your flags and configuration settings.
-
+	meetingCmd.Flags().StringP("start", "s", "", "Meeting start time")
+	meetingCmd.Flags().StringP("end", "e", "", "Meeting end time")
+	meetingCmd.Flags().BoolP("all", "a", false, "Flag setting to list all")
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// meetingCmd.PersistentFlags().String("foo", "", "A help for foo")
