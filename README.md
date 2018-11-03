@@ -82,3 +82,50 @@ Use "agenda [command] --help" for more information about a command.
 
 
 
+### agenda state
+
+​	The `agenda state` command can check your current login state.
+
+
+
+### agenda logout
+
+​	`agenda logout` will logout your current account from current shell.
+
+
+
+### agenda user
+
+ 	`agenda user`  command can access agenda system all users. You have to login before using this command. 
+
+
+
+### agenda cm
+
+​	`agenda cm` can help you to initial a meeting with some participaters. You can setting meeting title (unique), start time, end time for your meeting.
+
+​	**Note**: Meeting title must be unique, and participaters should not be null.
+
+
+
+### agenda meeting
+
+
+
+### agenda cancel
+
+
+
+### agenda join
+
+
+
+### agenda moveout
+
+
+
+### agenda quit
+
+
+
+### agenda delete
