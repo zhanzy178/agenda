@@ -167,9 +167,9 @@ Id   |Title   |Sponsor   |Since                     |To                        |
 
 ### agenda clear
 
-​	The `agenda clear` command will cancel all meetings. 
+​	The `agenda clear` command will cancel all meetings you created. 
 
-​	**Note** : All meetings will be clear, no matter whether you are the sponsor or participator of the meeting or nor, even the meeting has nothing to do with you.
+​	**Note** : All meeting you created will be canceled,  be careful and you have one chance to confirm the operation.
 
 
 
